@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "cVector3.h"
 #include "cMatrix.h"
+#include <cmath>
 
 #define EPSILON		0.0001f
 
