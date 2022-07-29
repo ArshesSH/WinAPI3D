@@ -34,6 +34,7 @@ public:
 			vUp( 0, 1, 0 ),
 			distance(5.0f),
 			isLbuttonDown(false),
+			isRbuttonDown( false ),
 			rotAngle(0,0,0)
 		{
 			prevMouse.x = 0;
@@ -53,6 +54,7 @@ public:
 
 		POINT prevMouse;
 		bool isLbuttonDown;
+		bool isRbuttonDown;
 		float distance;
 		cVector3 rotAngle;
 	};
@@ -174,8 +176,14 @@ public:
 		RECT rc;
 		GetClientRect( g_hWnd, &rc );
 
+		cMatrix matRX = cMatrix::RotationX( cam.rotAngle.x );
+		cMatrix matRY = cMatrix::RotationY( cam.rotAngle.y );
+		cMatrix camMatR = matRX * matRY;
+
 		cam.vLookAt = cube.pos;
 		cam.eyePos = { 0.0f, cam.distance, cam.distance };
+		cam.eyePos = cVector3::TransformCoord( cam.eyePos, camMatR );
+		cam.eyePos = cam.eyePos + cube.pos;
 
 		cMatrix matS = cMatrix::Scale( cube.scale );
 		cMatrix matR = cMatrix::RotationY( cube.rotY );
@@ -237,10 +245,52 @@ public:
 		switch ( message )
 		{
 		case WM_MOUSEWHEEL:
-			cam.distance -= (GET_WHEEL_DELTA_WPARAM(wParam) / 30.0f);
+			cam.distance -= (GET_WHEEL_DELTA_WPARAM(wParam) / 1000.0f);
 			if ( cam.distance < 1.0f )
 			{
 				cam.distance = 1.0f;
+			}
+			break;
+
+		case WM_RBUTTONDOWN:
+			{
+				cam.prevMouse.x = LOWORD( lParam );
+				cam.prevMouse.y = HIWORD( lParam );
+				cam.isRbuttonDown = true;
+			}
+			break;
+
+		case WM_RBUTTONUP:
+			cam.isRbuttonDown = false;
+			break;
+
+		case WM_MOUSEMOVE:
+			{
+				if ( cam.isRbuttonDown )
+				{
+					POINT ptCurMouse;
+					ptCurMouse.x = LOWORD( lParam );
+					ptCurMouse.y = HIWORD( lParam );
+
+					float dx = (float)ptCurMouse.x - (float)cam.prevMouse.x;
+					float dy = (float)ptCurMouse.y - (float)cam.prevMouse.y;
+
+					cam.rotAngle.y += (dx / 100.0f);
+					cam.rotAngle.x += (dy / 100.0f);
+
+					const float minAngle = -PI / 2.0f + EPSILON;
+					const float maxAngle = -minAngle;
+					if ( cam.rotAngle.x < minAngle )
+					{
+						cam.rotAngle.x = minAngle;
+					}
+					if ( cam.rotAngle.x > maxAngle )
+					{
+						cam.rotAngle.x = maxAngle;
+					}
+
+					cam.prevMouse = ptCurMouse;
+				}
 			}
 			break;
 		}
@@ -350,11 +400,6 @@ public:
 			}
 		}
 	}
-	void MoveCamera(cVector3 mousePos)
-	{
-
-	}
-
 private:
 	HDC						memDC;
 	HBITMAP					hOldBitmap, hBitmap;
