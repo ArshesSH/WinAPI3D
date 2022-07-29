@@ -4,6 +4,13 @@
 #include "framework.h"
 #include "WinAPI3D.h"
 
+/////
+#include "cMainGame.h"
+HWND g_hWnd;
+cMainGame* g_pMainGame;
+#define TIMER_ID 123
+/////
+
 #define MAX_LOADSTRING 100
 
 // 전역 변수:
@@ -40,6 +47,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WINAPI3D));
 
+
+    // Create Game
+    g_pMainGame = new cMainGame;
+    g_pMainGame->SetUp();
+    SetTimer( g_hWnd, TIMER_ID, 10, NULL );
+
     MSG msg;
 
     // 기본 메시지 루프입니다:
@@ -51,6 +64,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
     }
+
+    // Delete Game
+    KillTimer( g_hWnd, TIMER_ID );
+    delete g_pMainGame;
+    g_pMainGame = nullptr;
 
     return (int) msg.wParam;
 }
@@ -105,6 +123,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
+   // Set Window Handle
+   g_hWnd = hWnd;
+
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
@@ -123,6 +144,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    if ( g_pMainGame )
+    {
+        g_pMainGame->WndProc( hWnd, message, wParam, lParam );
+    }
+
     switch (message)
     {
     case WM_COMMAND:
@@ -142,11 +168,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
+    case WM_TIMER:
+        {
+            if ( g_pMainGame )
+            {
+                g_pMainGame->Update();
+                InvalidateRect( g_hWnd, NULL, false );
+            }
+        
+        }
+        break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
+
+            if ( g_pMainGame )
+            {
+                g_pMainGame->Render( hdc );
+            }
+
             EndPaint(hWnd, &ps);
         }
         break;

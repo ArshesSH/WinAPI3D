@@ -13,3 +13,9 @@
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
+
+#include <vector>
+
+extern HWND g_hWnd;
+#define PI 3.141592f
+#define EPSILON 0.0001f

@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="cMainGame.h" />
     <ClInclude Include="cMatrix.h" />
     <ClInclude Include="cVector3.h" />
     <ClInclude Include="framework.h" />
@@ -149,6 +150,7 @@
     <ClInclude Include="WinAPI3D.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="cMainGame.cpp" />
     <ClCompile Include="cMatrix.cpp" />
     <ClCompile Include="cVector3.cpp" />
     <ClCompile Include="WinAPI3D.cpp" />
