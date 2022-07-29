@@ -50,7 +50,7 @@ cVector3 cVector3::operator+(cVector3 & vec)
 	return v;
 }
 
-cVector3 cVector3::operator-(cVector3 & vec)
+cVector3 cVector3::operator-(const cVector3 & vec) const
 {
 	cVector3 v;
 	v.x = x - vec.x;

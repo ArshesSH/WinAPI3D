@@ -199,6 +199,11 @@ public:
 			v1 = cVector3::TransformCoord( v1, matWVP );
 			v2 = cVector3::TransformCoord( v2, matWVP );
 
+			if ( IsBackFace( v0, v1, v2 ) )
+			{
+				continue;
+			}
+
 			v0 = cVector3::TransformCoord( v0, cam.viewportMat );
 			v1 = cVector3::TransformCoord( v1, cam.viewportMat );
 			v2 = cVector3::TransformCoord( v2, cam.viewportMat );
@@ -218,7 +223,14 @@ public:
 
 	void SetGrid();
 	void DrawGrid();
-	bool IsBackFace( const cVector3& v1, const cVector3& v2, const cVector3& v3 ) const;
+	bool IsBackFace( const cVector3& v0, const cVector3& v1, const cVector3& v2 ) const
+	{
+		cVector3 v01 = v1 - v0;
+		cVector3 v02 = v2 - v0;
+		cVector3 n = cVector3::Cross( v01, v02 );
+		cVector3 look = { 0.0f, 0.0f, 1.0f };
+		return (cVector3::Dot( n, look ) > 0);
+	}
 	void Update_Rotation();
 	void Update_Move();
 	void Update_Scale();
