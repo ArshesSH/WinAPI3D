@@ -276,7 +276,7 @@ public:
 					float dy = (float)ptCurMouse.y - (float)cam.prevMouse.y;
 
 					cam.rotAngle.y += (dx / 100.0f);
-					cam.rotAngle.x += (dy / 100.0f);
+					cam.rotAngle.x -= (dy / 100.0f);
 
 					const float minAngle = -PI / 2.0f + EPSILON;
 					const float maxAngle = -minAngle;
