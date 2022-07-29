@@ -194,6 +194,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
+    case WM_MOUSEMOVE:
+        {
+          //  g_pMainGame->MoveCamera( { (LOWORD)lParam, (HIWORD)lParam } );
+        }
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }

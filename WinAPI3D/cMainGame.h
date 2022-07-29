@@ -21,7 +21,7 @@ public:
 
 		std::vector<cVector3> lineVertex;
 		cVector3 axisXTextPos;
-		cVector3 axisYTextPos;
+		cVector3 axisZTextPos;
 	};
 
 	class Camera
@@ -34,8 +34,7 @@ public:
 			vUp( 0, 1, 0 ),
 			distance(5.0f),
 			isLbuttonDown(false),
-			rotAngle(0,0,0),
-			scale(1.0f)
+			rotAngle(0,0,0)
 		{
 			prevMouse.x = 0;
 			prevMouse.y = 0;
@@ -56,7 +55,6 @@ public:
 		bool isLbuttonDown;
 		float distance;
 		cVector3 rotAngle;
-		float scale;
 	};
 
 	class Object
@@ -66,7 +64,8 @@ public:
 			:
 			pos(0,0,0),
 			rotY(0.0f),
-			dir(0,0,1)
+			dir(0,0,1),
+			scale( 1.0f )
 		{
 			vertices.emplace_back( -1.0f, -1.0f, -1.0f );	// 0
 			vertices.emplace_back( -1.0f, 1.0f, -1.0f );	// 1
@@ -132,6 +131,7 @@ public:
 		cVector3 pos;
 		cVector3 dir;
 		float rotY;
+		float scale;
 	};
 
 public:
@@ -163,18 +163,29 @@ public:
 		hOldBitmap = (HBITMAP)SelectObject( memDC, hBitmap );
 		ReleaseDC( g_hWnd, hdc );
 
+		SetGrid();
 	}
 	void Update()
 	{
+		Update_Rotation();
+		Update_Move();
+		Update_Scale();
+
 		RECT rc;
 		GetClientRect( g_hWnd, &rc );
 
-		cam.vLookAt = { 0.0f, 0.0f, 0.0f };
-		cam.eyePos = { 0.0f, 5.0f, -5.0f };
+		cam.vLookAt = cube.pos;
+		cam.eyePos = { 0.0f, cam.distance, cam.distance };
 
+		cMatrix matS = cMatrix::Scale( cube.scale );
 		cMatrix matR = cMatrix::RotationY( cube.rotY );
 		auto matT= cMatrix::Translation( cube.pos );
-		world.worldMat = matR * matT;
+
+		cube.dir = { 0.0f, 0.0f, 1.0f };
+		cube.dir = cVector3::TransformCoord( cube.dir, matR );
+
+		world.worldMat = matS * matR * matT;
+		//world.worldMat = matT * matR * matS;
 		cam.viewMat = cMatrix::View( cam.eyePos, cam.vLookAt, cam.vUp );
 		cam.projMat = cMatrix::Projection( PI / 4.0f, ((float)rc.right / (float)rc.bottom), 1.0f, 1000.0f );
 		cam.viewportMat = cMatrix::Viewport( 0, 0, rc.right, rc.bottom, 0, 1 );
@@ -182,10 +193,13 @@ public:
 	}
 	void Render( HDC hdc )
 	{
+
 		RECT rc;
 		GetClientRect( g_hWnd, &rc );
 
 		PatBlt( memDC, rc.left, rc.top, rc.right, rc.bottom, WHITENESS );
+
+		DrawGrid();
 
 		cMatrix matWVP = world.worldMat * cam.viewMat * cam.projMat;
 
@@ -219,10 +233,72 @@ public:
 	}
 
 	void WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
-	{}
+	{
+		switch ( message )
+		{
+		case WM_MOUSEWHEEL:
+			cam.distance -= (GET_WHEEL_DELTA_WPARAM(wParam) / 30.0f);
+			if ( cam.distance < 1.0f )
+			{
+				cam.distance = 1.0f;
+			}
+			break;
+		}
 
-	void SetGrid();
-	void DrawGrid();
+
+
+	}
+
+	void SetGrid()
+	{
+		int halfTileCnt = 5;
+		float interval = 1.0f;
+		float max = halfTileCnt * interval;
+		float min = -halfTileCnt * interval;
+
+		for ( int i = 1; i <= halfTileCnt; ++i )
+		{
+			world.lineVertex.emplace_back( min, 0, i * interval );
+			world.lineVertex.emplace_back( max, 0, i * interval );
+			world.lineVertex.emplace_back( min, 0, -i * interval );
+			world.lineVertex.emplace_back( max, 0, -i * interval );
+
+			world.lineVertex.emplace_back( i * interval, 0, min );
+			world.lineVertex.emplace_back( i * interval, 0, max );
+			world.lineVertex.emplace_back( -i * interval, 0, min );
+			world.lineVertex.emplace_back( -i * interval, 0, max );
+		}
+
+		world.lineVertex.emplace_back( 0, 0, min );
+		world.lineVertex.emplace_back( 0, 0, max );
+		world.lineVertex.emplace_back( min, 0, 0 );
+		world.lineVertex.emplace_back( max, 0, 0 );
+
+		world.axisXTextPos = { max, 0, 0 };
+		world.axisZTextPos = { 0,0,max };
+	}
+	void DrawGrid()
+	{
+		cMatrix mat = cam.viewMat * cam.projMat * cam.viewportMat;
+		for ( size_t i = 0; i < world.lineVertex.size(); i += 2 )
+		{
+			cVector3 v0 = world.lineVertex[i];
+			cVector3 v1 = world.lineVertex[i + 1];
+
+			v0 = cVector3::TransformCoord( v0, mat );
+			v1 = cVector3::TransformCoord( v1, mat );
+
+			MoveToEx( memDC, v0.x, v0.y, NULL );
+			LineTo( memDC, v1.x, v1.y );
+		}
+		cVector3 v = world.axisXTextPos;
+		v = cVector3::TransformCoord( v, mat );
+		TextOut( memDC, v.x, v.y, (LPCWSTR)"X", 1 );
+
+		v = world.axisZTextPos;
+		v = cVector3::TransformCoord( v, mat );
+		TextOut( memDC, v.x, v.y, (LPCWSTR)"Z", 1 );
+	}
 	bool IsBackFace( const cVector3& v0, const cVector3& v1, const cVector3& v2 ) const
 	{
 		cVector3 v01 = v1 - v0;
@@ -231,9 +307,53 @@ public:
 		cVector3 look = { 0.0f, 0.0f, 1.0f };
 		return (cVector3::Dot( n, look ) > 0);
 	}
-	void Update_Rotation();
-	void Update_Move();
-	void Update_Scale();
+	void Update_Rotation()
+	{
+		if ( GetKeyState( 'A' ) & 0x8000 )
+		{
+			cube.rotY -= 0.1f;
+		}
+		if ( GetKeyState( 'D' ) & 0x8000 )
+		{
+			cube.rotY += 0.1f;
+		}
+	}
+	void Update_Move()
+	{
+		if ( GetKeyState( 'W' ) & 0x8000 )
+		{
+			auto dir = cube.dir * 0.1f;
+			cube.pos = cube.pos + dir;
+		}
+		if ( GetKeyState( 'S' ) & 0x8000 )
+		{
+			auto dir = cube.dir * 0.1f;
+			cube.pos = cube.pos - dir;
+		}
+	}
+	void Update_Scale()
+	{
+		if ( GetKeyState( 'R' ) & 0x8000 )
+		{
+			cube.scale += 0.1f;
+			if ( cube.scale > 3.0f )
+			{
+				cube.scale = 3.0f;
+			}
+		}
+		if ( GetKeyState( 'F' ) & 0x8000 )
+		{
+			cube.scale -= 0.1f;
+			if ( cube.scale < 0.1f )
+			{
+				cube.scale = 0.1f;
+			}
+		}
+	}
+	void MoveCamera(cVector3 mousePos)
+	{
+
+	}
 
 private:
 	HDC						memDC;
